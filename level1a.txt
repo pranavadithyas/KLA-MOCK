@@ -1,0 +1,70 @@
+
+import networkx as nx
+import json
+
+data =open("C:/Users/TEMP/Downloads/level1b.json")
+res=[]
+graph_data = json.load(data)
+
+G = nx.Graph()
+
+for neighborhood in graph_data["neighbourhoods"]:
+    G.add_node(neighborhood)
+
+restaurant = list(graph_data["restaurants"])[0]
+G.add_node(restaurant)
+
+for neighborhood, data in graph_data["neighbourhoods"].items():
+    distances = data["distances"]
+    for i, distance in enumerate(distances):
+        G.add_edge(neighborhood, f"n{i}", weight=distance)
+
+restaurant_distances = graph_data["restaurants"][restaurant]["neighbourhood_distance"]
+for i, distance in enumerate(restaurant_distances):
+    G.add_edge(restaurant, f"n{i}", weight=distance)
+
+def nearest_neighbor_algorithm(graph, start_node):
+    path = [start_node]
+    current_node = start_node
+    visited = set([start_node])
+    cap=graph_data["vehicles"]["v0"]["capacity"]
+    n=0
+
+    while n< graph.number_of_nodes():
+        if current_node==start_node:
+            path=[start_node]
+            cap=graph_data["vehicles"]["v0"]["capacity"]
+        neighbors = list(graph.neighbors(current_node))
+        unvisited_neighbors = [neighbor for neighbor in neighbors if neighbor not in visited]
+        
+        if not unvisited_neighbors:
+            # If all neighbors are visited, go back to the start
+            break
+        else:
+            nearest_neighbor = min(unvisited_neighbors, key=lambda neighbor: graph[current_node][neighbor]['weight'])
+            if cap>graph_data['neighbourhoods'][nearest_neighbor]["order_quantity"]:
+                cap-=graph_data["neighbourhoods"][nearest_neighbor]["order_quantity"]
+                print(nearest_neighbor)
+
+                path.append(nearest_neighbor)
+                visited.add(nearest_neighbor)
+                n+=1
+                current_node = nearest_neighbor
+            else:
+                path.append("r0")
+                res.append(path)
+                current_node=start_node
+
+    return path
+
+start_node = graph_data["vehicles"]["v0"]["start_point"]
+nearest_neighbor_path = nearest_neighbor_algorithm(G, start_node)
+print("Nearest neighbor path:", nearest_neighbor_path)
+nearest_neighbor_path.append("r0")
+res.append(nearest_neighbor_path)
+f=open("C:/21pw18/level1a_output.json","w")
+# Save the output JSON to a file
+data= {"v0":{"path1":res[0],"path2":res[1],"path3":res[2]}}
+print(res)
+
+json.dump(data,f)
